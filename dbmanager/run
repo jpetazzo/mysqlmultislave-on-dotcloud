@@ -1,0 +1,3 @@
+#!/bin/sh
+# Dummy "long running" process
+while true ; do sleep 60 ; done

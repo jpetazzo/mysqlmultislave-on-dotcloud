@@ -1,0 +1,16 @@
+dbwrite:
+  type: mysql
+  instances: 2
+dbread1:
+  type: mysql
+  config:
+    mysql_serverid: 1001
+dbread2:
+  type: mysql
+  config:
+    mysql_serverid: 1002
+dbmanager:
+  type: custom
+  buildscript: dbmanager/builder
+  systempackages: 
+    - mysql-client-5.1

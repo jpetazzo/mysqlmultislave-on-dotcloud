@@ -1,0 +1,45 @@
+#!/bin/sh
+# Put your master DB service name below, as well as the name(s) of the
+# slave services that you want to cascade on it.
+# Since dotCloud uppercases environment variables, we should specify
+# service names in uppercase as well.
+MASTER="DBWRITE"
+SLAVES="DBREAD1 DBREAD2"
+provision () {
+	echo "Checking if $2 is a slave of $1..."
+	eval MASTER_LOGIN=\$DOTCLOUD_${1}_MYSQL_LOGIN
+	eval MASTER_PASSWORD=\$DOTCLOUD_${1}_MYSQL_PASSWORD
+	eval MASTER_HOST=\$DOTCLOUD_${1}_MYSQL_HOST
+	eval MASTER_PORT=\$DOTCLOUD_${1}_MYSQL_PORT
+	eval SLAVE_LOGIN=\$DOTCLOUD_${2}_MYSQL_LOGIN
+	eval SLAVE_PASSWORD=\$DOTCLOUD_${2}_MYSQL_PASSWORD
+	eval SLAVE_HOST=\$DOTCLOUD_${2}_MYSQL_HOST
+	eval SLAVE_PORT=\$DOTCLOUD_${2}_MYSQL_PORT
+	MASTERARGS="-h$MASTER_HOST -P$MASTER_PORT -u$MASTER_LOGIN -p$MASTER_PASSWORD"
+	SLAVEARGS="-h$SLAVE_HOST -P$SLAVE_PORT -u$SLAVE_LOGIN -p$SLAVE_PASSWORD"
+	NEWSLAVEARGS="-h$SLAVE_HOST -P$SLAVE_PORT -u$MASTER_LOGIN -p$MASTER_PASSWORD"
+	# Uncomment this line to force re-provisioning
+	#SLAVEARGS=$NEWSLAVEARGS
+	if mysql $SLAVEARGS -e "SELECT 1"
+	then
+		echo "Slave $2 is not provisioned yet. Provisioning now."
+		mysql $SLAVEARGS -e "STOP SLAVE"
+		mysql $SLAVEARGS -e "RESET SLAVE"
+		mysql $SLAVEARGS -e "CHANGE MASTER TO MASTER_HOST='$MASTER_HOST', MASTER_PORT=$MASTER_PORT, MASTER_LOG_FILE='', MASTER_LOG_POS=4, MASTER_CONNECT_RETRY=10, MASTER_USER='$MASTER_LOGIN', MASTER_PASSWORD='$MASTER_PASSWORD';"
+		mysqldump $MASTERARGS --opt --add-drop-database --all-databases --lock-all-tables --master-data |
+			mysql $SLAVEARGS
+		mysql $SLAVEARGS -e "FLUSH PRIVILEGES"
+		mysql $NEWSLAVEARGS -e "START SLAVE"
+	fi
+	if mysql $NEWSLAVEARGS -e "SELECT 1"
+	then
+		echo "Slave $2 seems to be provisioned alright. Checking replication state."
+		mysql $NEWSLAVEARGS -e "SHOW SLAVE STATUS"
+	else
+		echo "Could not connect to slave $2 with appropriate credentials."
+	fi
+}
+for SLAVE in $SLAVES
+do
+	provision $MASTER $SLAVE
+done
