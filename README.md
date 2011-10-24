@@ -34,6 +34,14 @@ Push.
 
 Exec ``dotcloud run myapp.dbmanager ./startsync``.
 
+## Important note about credentials
+
+After runing the ``startsync`` script, the slave DB credentials
+will be wiped out, and replaced with those of the master DB.
+So, when connecting to the slave DB ``dbread1``, remember to use the
+host and port shown by ``dotcloud info myapp.dbread1``, but the
+login and password shown by ``dotcloud info myapp.dbwrite``!
+
 ## Todo
 
 - guess dbwrite and dbread services by parsing ``environment.json``
