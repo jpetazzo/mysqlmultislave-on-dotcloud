@@ -42,6 +42,12 @@ So, when connecting to the slave DB ``dbread1``, remember to use the
 host and port shown by ``dotcloud info myapp.dbread1``, but the
 login and password shown by ``dotcloud info myapp.dbwrite``!
 
+Just to make it clear: ``dotcloud info myapp.dbread1`` will
+still show the old, invalid credentials for the slave databases.
+Don't believe ``dotcloud info`` in that case: it does not
+know that you have changed the MySQL root password (by setting
+up synchronization with another database).
+
 ## Todo
 
 - guess dbwrite and dbread services by parsing ``environment.json``
